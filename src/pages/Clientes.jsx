@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getClientes, crearCliente, actualizarCliente, eliminarCliente } from '../lib/clientes'
 
+const MAX_CLIENTES = 5
+
 const Clientes = () => {
   const { user } = useAuth()
 
@@ -16,8 +18,13 @@ const Clientes = () => {
   const [formData, setFormData] = useState({ nombre: '', contacto: '', nota: '' })
   const [guardando, setGuardando] = useState(false)
 
+  // Estado del modal de upgrade (límite del plan gratis)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+
   // Estado del diálogo de confirmación de eliminación
   const [eliminando, setEliminando] = useState(null)
+
+  const limiteAlcanzado = clientes.length >= MAX_CLIENTES
 
   // Cargar clientes al montar el componente
   useEffect(() => {
@@ -39,6 +46,10 @@ const Clientes = () => {
 
   // Abrir modal para crear un nuevo cliente
   const abrirCrear = () => {
+    if (limiteAlcanzado) {
+      setShowUpgrade(true)
+      return
+    }
     setEditando(null)
     setFormData({ nombre: '', contacto: '', nota: '' })
     setModalOpen(true)
@@ -132,6 +143,44 @@ const Clientes = () => {
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex justify-between items-center">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 font-bold text-lg leading-none">&times;</button>
+        </div>
+      )}
+
+      {/* Indicador de límite del plan */}
+      {clientes.length > 0 && clientes.length < MAX_CLIENTES && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-600">
+              Plan Gratis — <span className="font-medium">{clientes.length}/{MAX_CLIENTES}</span> clientes usados
+            </span>
+            <span className="text-xs text-gray-400">{MAX_CLIENTES - clientes.length} restantes</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-blue-500 h-2 rounded-full transition-all"
+              style={{ width: `${(clientes.length / MAX_CLIENTES) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {limiteAlcanzado && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <svg className="h-6 w-6 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p className="text-sm text-amber-800">
+              Alcanzaste el límite de <strong>{MAX_CLIENTES} clientes</strong> del plan gratis.
+              Pasa a Pro para agregar más.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowUpgrade(true)}
+            className="ml-4 bg-amber-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors flex-shrink-0"
+          >
+            Pasá a Pro
+          </button>
         </div>
       )}
 
@@ -275,6 +324,48 @@ const Clientes = () => {
                 Eliminar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de upgrade a Pro */}
+      {showUpgrade && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md mx-4 text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 mb-4">
+              <svg className="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M19 3v4M3 7h18M5 11h14M5 15h14M5 19h14" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Pasá a Pro</h3>
+            <p className="text-gray-600 mb-2">
+              Alcanzaste el límite de <strong>{MAX_CLIENTES} clientes</strong> del plan gratis.
+            </p>
+            <p className="text-gray-500 text-sm mb-6">
+              Con el plan Pro podés gestionar clientes ilimitados y acceder a todas las funciones.
+            </p>
+            <ul className="text-left text-sm text-gray-600 space-y-2 mb-6">
+              {['Clientes ilimitados', 'Cobros ilimitados', 'Estadísticas avanzadas', 'Soporte prioritario'].map((beneficio) => (
+                <li key={beneficio} className="flex items-center space-x-2">
+                  <svg className="h-5 w-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{beneficio}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => alert('Próximamente podrás suscribirte al plan Pro.')}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 rounded-lg text-sm font-bold hover:from-amber-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all mb-3"
+            >
+              Pasá a Pro — Próximamente
+            </button>
+            <button
+              onClick={() => setShowUpgrade(false)}
+              className="w-full text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
+            >
+              Ahora no
+            </button>
           </div>
         </div>
       )}
