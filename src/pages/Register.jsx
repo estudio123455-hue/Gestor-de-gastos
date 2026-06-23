@@ -16,7 +16,9 @@ const Register = () => {
     setError('')
 
     try {
-      await signUp(email, password)
+      await signUp(email, password, {
+        emailRedirectTo: `${window.location.origin}/login`,
+      })
       navigate('/login')
     } catch (err) {
       setError(err.message)
